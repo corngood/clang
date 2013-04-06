@@ -524,4 +524,11 @@ def cl_std_EQ : Joined<["-"], "cl-std=">,
 def fcuda_is_device : Flag<["-"], "fcuda-is-device">,
   HelpText<"Generate code for CUDA device">;
 
+//===----------------------------------------------------------------------===//
+// C++AMP Options
+//===----------------------------------------------------------------------===//
+
+def fcxxamp_is_kernel : Flag<["-"], "fc++amp-is-kernel">,
+  HelpText<"Generate code for AMP kernels">;
+
 } // let Flags = [CC1Option]

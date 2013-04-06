@@ -3212,6 +3212,9 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
     CmdArgs.push_back(Args.MakeArgString(Flags.str()));
   }
 
+  if (Args.hasArg(options::OPT_fcxxamp))
+    CmdArgs.push_back("-fc++amp");
+
   // Finally add the command to the compilation.
   C.addCommand(new Command(JA, *this, Exec, CmdArgs));
 

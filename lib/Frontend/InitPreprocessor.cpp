@@ -432,6 +432,9 @@ static void InitializePredefinedMacros(const TargetInfo &TI,
     Builder.defineMacro("__private_extern__", "extern");
   }
 
+  if (LangOpts.AMP)
+    Builder.defineMacro("__CXXAMP_");
+
   if (LangOpts.MicrosoftExt) {
     // Both __PRETTY_FUNCTION__ and __FUNCTION__ are GCC extensions, however
     // VC++ appears to only like __FUNCTION__.

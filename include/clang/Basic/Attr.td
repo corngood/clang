@@ -330,6 +330,17 @@ def OpenCLKernel : Attr {
   let Spellings = [Keyword<"__kernel">, Keyword<"kernel">];
 }
 
+def AMPRestrict : Attr {
+  let Spellings = [CXX11<"amp", "restrict">];
+  let Subjects = [Function, CXXRecord];
+  let Args = [UnsignedArgument<"Mode">];
+}
+
+def AMPKernel : Attr {
+  let Spellings = [CXX11<"amp", "kernel">];
+  let Subjects = [Function];
+}
+
 def OpenCLImageAccess : Attr {
   let Spellings = [GNU<"opencl_image_access">];
   let Args = [IntArgument<"Access">];

@@ -20,6 +20,7 @@
 #include "clang/AST/Decl.h"
 #include "clang/AST/DeclCXX.h"
 #include "clang/AST/StmtCXX.h"
+#include "clang/Basic/AMP.h"
 #include "clang/Basic/TargetInfo.h"
 #include "clang/Frontend/CodeGenOptions.h"
 #include "llvm/IR/DataLayout.h"
@@ -339,6 +340,31 @@ void CodeGenFunction::EmitOpenCLKernelMetadata(const FunctionDecl *FD,
   OpenCLKernelMetadata->addOperand(kernelMDNode);
 }
 
+void CodeGenFunction::EmitAMPFunctionMetadata(const FunctionDecl *FD,
+                                               llvm::Function *Fn)
+{
+#if 0
+  if (!getLangOpts().AMP)
+    return;
+
+  if (!FD->hasAttr<AMPRestrictAttr>())
+    return;
+
+  if (!(FD->getAttr<AMPRestrictAttr>()->getMode() & AFT_AMP))
+    return;
+
+  llvm::LLVMContext &Context = getLLVMContext();
+
+  SmallVector <llvm::Value*, 5> MDArgs;
+  MDArgs.push_back(Fn);
+
+  llvm::MDNode *MDNode = llvm::MDNode::get(Context, MDArgs);
+  llvm::NamedMDNode *Metadata =
+    CGM.getModule().getOrInsertNamedMetadata("amp.restrict");
+  Metadata->addOperand(MDNode);
+#endif
+}
+
 void CodeGenFunction::StartFunction(GlobalDecl GD, QualType RetTy,
                                     llvm::Function *Fn,
                                     const CGFunctionInfo &FnInfo,
@@ -373,6 +399,11 @@ void CodeGenFunction::StartFunction(GlobalDecl GD, QualType RetTy,
     // Add metadata for a kernel function.
     if (const FunctionDecl *FD = dyn_cast_or_null<FunctionDecl>(D))
       EmitOpenCLKernelMetadata(FD, Fn);
+  }
+
+  if (getLangOpts().AMP) {
+    if (const FunctionDecl *FD = dyn_cast_or_null<FunctionDecl>(D))
+      EmitAMPFunctionMetadata(FD, Fn);
   }
 
   llvm::BasicBlock *EntryBB = createBasicBlock("entry", CurFn);

@@ -14,6 +14,7 @@
 #include "clang/Parse/Parser.h"
 #include "RAIIObjectsForParser.h"
 #include "clang/Basic/AddressSpaces.h"
+#include "clang/Basic/AMP.h"
 #include "clang/Basic/CharInfo.h"
 #include "clang/Basic/OpenCL.h"
 #include "clang/Parse/ParseDiagnostic.h"
@@ -536,6 +537,33 @@ void Parser::ParseOpenCLQualifiers(DeclSpec &DS) {
           PP.getIdentifierInfo("opencl_image_access"), Loc, CLIA_read_write);
       break;
     default: break;
+  }
+}
+
+void Parser::MaybeParseAMPRestrictAttribute(ParsedAttributes &Attr) {
+  if (getLangOpts().AMP && Tok.is(tok::kw_restrict)) {
+    IdentifierInfo *RestrictInfo = Tok.getIdentifierInfo();
+    SourceLocation RestrictLoc = ConsumeToken();
+    if (Tok.is(tok::l_paren)) {
+      BalancedDelimiterTracker T(*this, tok::l_paren);
+      T.consumeOpen();
+      int Value = 0;
+      do {
+        if(Tok.is(tok::identifier)) {
+          IdentifierInfo * const Ident = Tok.getIdentifierInfo();
+          Value |= llvm::StringSwitch<int>(Ident->getName())
+            .Case("cpu", AFT_CPU)
+            .Case("amp", AFT_AMP)
+            .Default(0);
+          ConsumeToken();
+        }
+        else {
+          return;
+        }
+      } while (Tok.is(tok::comma) && (ConsumeToken(), true));
+      T.consumeClose();
+      Attr.addNewInteger(Actions.getASTContext(), RestrictInfo, RestrictLoc, Value);
+    }
   }
 }
 
@@ -4105,6 +4133,8 @@ void Parser::ParseTypeQualifierListOpt(DeclSpec &DS,
                                  getLangOpts());
       break;
     case tok::kw_restrict:
+      // must be AMP restrict()
+      if(getLangOpts().AMP && NextToken().is(tok::l_paren)) return;
       isInvalid = DS.SetTypeQual(DeclSpec::TQ_restrict, Loc, PrevSpec, DiagID,
                                  getLangOpts());
       break;
@@ -4814,6 +4844,8 @@ void Parser::ParseFunctionDeclarator(Declarator &D,
                                (D.getDeclSpec().isConstexprSpecified()
                                   ? Qualifiers::Const : 0),
                                IsCXX11MemberFunction);
+
+      MaybeParseAMPRestrictAttribute(FnAttrs);
 
       // Parse exception-specification[opt].
       ESpecType = tryParseExceptionSpecification(ESpecRange,

@@ -29,6 +29,7 @@
 #include "clang/AST/Mangle.h"
 #include "clang/AST/RecordLayout.h"
 #include "clang/AST/RecursiveASTVisitor.h"
+#include "clang/Basic/AMP.h"
 #include "clang/Basic/Builtins.h"
 #include "clang/Basic/CharInfo.h"
 #include "clang/Basic/Diagnostic.h"
@@ -414,6 +415,18 @@ StringRef CodeGenModule::getMangledName(GlobalDecl GD) {
   else
     getCXXABI().getMangleContext().mangleName(ND, Out);
 
+#if 0
+  if (Context.getLangOpts().AMP && ND->hasAttr<AMPRestrictAttr>()) {
+    switch(ND->getAttr<AMPRestrictAttr>()->getMode())
+    {
+      case AFT_CPU: break;
+      case AFT_AMP: Out << "_AMP"; break;
+      case AFT_CPU & AFT_AMP: assert(false && "TODO: support restrict(amp, cpu)"); break;
+      default: assert(false && "unsupported AMP restrict mode"); break;
+    }
+  }
+#endif
+
   // Allocate space for the mangled name.
   Out.flush();
   size_t Length = Buffer.size();
@@ -489,6 +502,12 @@ void CodeGenModule::EmitCtorList(const CtorList &Fns, const char *GlobalName) {
 
 llvm::GlobalValue::LinkageTypes
 CodeGenModule::getFunctionLinkage(const FunctionDecl *D) {
+  if (LangOpts.AMP && CodeGenOpts.AMPIsKernel) {
+    return D->hasAttr<AMPKernelAttr>()
+        ? llvm::Function::ExternalLinkage
+        : llvm::Function::InternalLinkage;
+  }
+
   GVALinkage Linkage = getContext().GetGVALinkageForFunction(D);
 
   if (Linkage == GVA_Internal)
@@ -961,6 +980,10 @@ bool CodeGenModule::MayDeferGeneration(const ValueDecl *Global) {
   if (LangOpts.EmitAllDecls)
     return false;
 
+  if (LangOpts.AMP && CodeGenOpts.AMPIsKernel) {
+    if (Global->hasAttr<AMPKernelAttr>()) return false;
+  }
+
   return !getContext().DeclMustBeEmitted(Global);
 }
 
@@ -1063,6 +1086,12 @@ void CodeGenModule::EmitGlobal(GlobalDecl GD) {
             Global->hasAttr<CUDASharedAttr>()))
         return;
     }
+  }
+
+  if (LangOpts.AMP) {
+    if (CodeGenOpts.AMPIsKernel !=
+        (Global->hasAttr<AMPRestrictAttr>() ||
+        Global->hasAttr<AMPKernelAttr>())) return;
   }
 
   // Ignore declarations, they will be emitted on their first use.
@@ -1319,6 +1348,9 @@ CodeGenModule::GetOrCreateLLVMFunction(StringRef MangledName,
       FD = FD->getPreviousDecl();
     } while (FD);
   }
+
+  if (getLangOpts().AMP && D.getDecl())
+    EmitAMPKernelMetadata(F, *cast<FunctionDecl>(D.getDecl()));
 
   // Make sure the result is of the requested type.
   if (!IsIncompleteFunction) {
@@ -2958,4 +2990,23 @@ llvm::Constant *CodeGenModule::EmitUuidofInitializer(StringRef Uuid,
           llvm::APInt(8, StringRef(Uuidstr + Field3ValueOffsets[t], 2), 16)));
 
   return EmitConstantValue(InitStruct, GuidType);
+}
+
+void CodeGenModule::EmitAMPKernelMetadata(llvm::Function *F, const FunctionDecl &D)
+{
+  if (!getLangOpts().AMP)
+    return;
+
+  if (!D.hasAttr<AMPKernelAttr>())
+    return;
+
+  llvm::LLVMContext &Context = getLLVMContext();
+
+  SmallVector <llvm::Value*, 1> MDArgs;
+  MDArgs.push_back(F);
+
+  llvm::MDNode *MDNode = llvm::MDNode::get(Context, MDArgs);
+  llvm::NamedMDNode *Metadata =
+    getModule().getOrInsertNamedMetadata("amp.kernel");
+  Metadata->addOperand(MDNode);
 }

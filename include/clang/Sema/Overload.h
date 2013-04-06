@@ -590,7 +590,7 @@ namespace clang {
     /// viable because the final conversion was not an exact match.
     ovl_fail_final_conversion_not_exact,
 
-    /// (CUDA) This candidate was not viable because the callee
+    /// (CUDA/C++AMP) This candidate was not viable because the callee
     /// was not accessible from the caller's target (i.e. host->device,
     /// global->host, device->host).
     ovl_fail_bad_target

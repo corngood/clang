@@ -1209,6 +1209,9 @@ private:
   void EmitOpenCLKernelMetadata(const FunctionDecl *FD, 
                                 llvm::Function *Fn);
 
+  void EmitAMPFunctionMetadata(const FunctionDecl *FD,
+                                llvm::Function *Fn);
+
 public:
   CodeGenFunction(CodeGenModule &cgm, bool suppressNewContext=false);
   ~CodeGenFunction();

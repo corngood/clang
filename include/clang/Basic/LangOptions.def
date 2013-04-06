@@ -119,6 +119,7 @@ LANGOPT(OpenCLVersion     , 32, 0, "OpenCL version")
 LANGOPT(NativeHalfType    , 1, 0, "Native half type support")
 LANGOPT(CUDA              , 1, 0, "CUDA")
 LANGOPT(OpenMP            , 1, 0, "OpenMP support")
+LANGOPT(AMP               , 1, 0, "C++AMP support")
 
 LANGOPT(AssumeSaneOperatorNew , 1, 1, "implicit __attribute__((malloc)) for C++'s new operators")
 BENIGN_LANGOPT(ElideConstructors , 1, 1, "C++ copy constructor elision")

@@ -27,6 +27,7 @@
 #include "clang/Sema/SemaInternal.h"
 #include "clang/Sema/Template.h"
 #include "clang/Sema/TemplateDeduction.h"
+#include "clang/Sema/Scope.h"
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallPtrSet.h"
@@ -985,6 +986,14 @@ static bool canBeOverloaded(const FunctionDecl &D) {
   return true;
 }
 
+static unsigned getAMPRestrict(FunctionDecl *Fn) {
+  if (!Fn->hasAttr<AMPRestrictAttr>()) {
+    return 1;
+  } else {
+    return Fn->getAttr<AMPRestrictAttr>()->getMode();
+  }
+}
+
 bool Sema::IsOverload(FunctionDecl *New, FunctionDecl *Old,
                       bool UseUsingDeclRules) {
   // If both of the functions are extern "C", then they are not
@@ -1083,6 +1092,11 @@ bool Sema::IsOverload(FunctionDecl *New, FunctionDecl *Old,
     if (NewMethod->isConstexpr() && !isa<CXXConstructorDecl>(NewMethod))
       NewQuals |= Qualifiers::Const;
     if (OldMethod->getTypeQualifiers() != NewQuals)
+      return true;
+  }
+
+  if(getLangOpts().AMP) {
+    if((getAMPRestrict(Old) & getAMPRestrict(New)) == 0)
       return true;
   }
 
@@ -9876,6 +9890,21 @@ bool Sema::buildOverloadedCallSet(Scope *S, Expr *Fn,
   // functions, including those from argument-dependent lookup.
   AddOverloadedCallCandidates(ULE, llvm::makeArrayRef(Args, NumArgs),
                               *CandidateSet);
+
+  if (getLangOpts().AMP) {
+    if (FunctionDecl * const CallerFunction = dyn_cast<FunctionDecl>(CurContext)) {
+      unsigned const CallerRestrict = getAMPRestrict(CallerFunction);
+
+      for (OverloadCandidateSet::iterator Cand = CandidateSet->begin(); Cand != CandidateSet->end(); ++Cand) {
+        unsigned const CalleeRestrict = getAMPRestrict(Cand->Function);
+
+        if ((CallerRestrict & CalleeRestrict) != CallerRestrict) {
+          Cand->Viable = false;
+          Cand->FailureKind = ovl_fail_bad_target;
+        }
+      }
+    }
+  }
 
   // If we found nothing, try to recover.
   // BuildRecoveryCallExpr diagnoses the error itself, so we just bail

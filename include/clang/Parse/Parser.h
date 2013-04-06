@@ -1916,6 +1916,8 @@ private:
   void ParseOpenCLAttributes(ParsedAttributes &attrs);
   void ParseOpenCLQualifiers(DeclSpec &DS);
 
+  void MaybeParseAMPRestrictAttribute(ParsedAttributes &Attr);
+
   VersionTuple ParseVersionTuple(SourceRange &Range);
   void ParseAvailabilityAttribute(IdentifierInfo &Availability,
                                   SourceLocation AvailabilityLoc,

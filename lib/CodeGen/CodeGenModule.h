@@ -907,6 +907,8 @@ public:
     DeferredVTables.push_back(RD);
   }
 
+  void EmitAMPKernelMetadata(llvm::Function *F, const FunctionDecl &D);
+
 private:
   llvm::GlobalValue *GetGlobalValue(StringRef Ref);
 

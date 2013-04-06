@@ -3914,7 +3914,35 @@ static void handleOpenCLKernelAttr(Sema &S, Decl *D, const AttributeList &Attr){
   D->addAttr(::new (S.Context) OpenCLKernelAttr(Attr.getRange(), S.Context));
 }
 
-bool Sema::CheckCallingConvAttr(const AttributeList &attr, CallingConv &CC, 
+static void handleAMPRestrictAttr(Sema &S, Decl *D, const AttributeList &Attr){
+  if(!S.getLangOpts().AMP)
+    return;
+
+  assert(!Attr.isInvalid());
+
+  // check the attribute arguments.
+  if (!checkAttributeNumArgs(S, Attr, 1))
+    return;
+
+  Expr *RestrictExpr = Attr.getArg(0);
+  llvm::APSInt Restrict(32);
+  if (RestrictExpr->isTypeDependent() || RestrictExpr->isValueDependent() ||
+      !RestrictExpr->isIntegerConstantExpr(Restrict, S.Context)) {
+    S.Diag(Attr.getLoc(), diag::err_attribute_argument_not_int)
+      << "restrict" << RestrictExpr->getSourceRange();
+    Attr.setInvalid();
+  }
+  else {
+    D->addAttr(::new (S.Context) AMPRestrictAttr(Attr.getRange(), S.Context, Restrict.getZExtValue()));
+  }
+}
+
+static void handleAMPKernelAttr(Sema &S, Decl *D, const AttributeList &Attr){
+  assert(!Attr.isInvalid());
+  D->addAttr(::new (S.Context) AMPKernelAttr(Attr.getRange(), S.Context));
+}
+
+bool Sema::CheckCallingConvAttr(const AttributeList &attr, CallingConv &CC,
                                 const FunctionDecl *FD) {
   if (attr.isInvalid())
     return true;
@@ -4776,6 +4804,8 @@ static void ProcessInheritableDeclAttr(Sema &S, Scope *scope, Decl *D,
   case AttributeList::AT_OpenCLKernel:
     handleOpenCLKernelAttr(S, D, Attr);
     break;
+  case AttributeList::AT_AMPRestrict: handleAMPRestrictAttr(S, D, Attr); break;
+  case AttributeList::AT_AMPKernel: handleAMPKernelAttr(S, D, Attr); break;
 
   // Microsoft attributes:
   case AttributeList::AT_MsStruct:

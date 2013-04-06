@@ -841,6 +841,8 @@ ExprResult Parser::ParseLambdaExpressionAfterIntroducer(
     // Parse attribute-specifier[opt].
     MaybeParseCXX11Attributes(Attr, &DeclEndLoc);
 
+    MaybeParseAMPRestrictAttribute(Attr);
+
     SourceLocation FunLocalRangeEnd = DeclEndLoc;
 
     // Parse trailing-return-type[opt].
