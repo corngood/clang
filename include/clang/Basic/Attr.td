@@ -331,7 +331,9 @@ def OpenCLKernel : Attr {
 }
 
 def AMPRestrict : Attr {
-  let Spellings = [CXX11<"amp", "restrict">];
+  // MaybeParseAMPRestrictAttribute currently requires the GNU attribute.
+  // TODO: have it create a CXX11 attribute once they support arguments
+  let Spellings = [CXX11<"amp", "restrict">, GNU<"restrict">];
   let Subjects = [Function, CXXRecord];
   let Args = [UnsignedArgument<"Mode">];
 }
