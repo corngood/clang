@@ -48,6 +48,10 @@ public:
   /// The list of target specific features to enable or disable -- this should
   /// be a list of strings starting with by '+' or '-'.
   std::vector<std::string> Features;
+
+  bool AMPIsKernel;
+
+  TargetOptions() : AMPIsKernel(false) {}
 };
 
 }  // end namespace clang

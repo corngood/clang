@@ -620,6 +620,17 @@ static const LangAS::Map *getAddressSpaceMap(const TargetInfo &T,
       6  // cuda_shared
     };
     return &FakeAddrSpaceMap;
+  } else if (LOpts.AMP && T.getTargetOpts().AMPIsKernel) {
+    // TODO: switch to SPIR and make this less of a hack
+    static const unsigned NVPTXAddrSpaceMap[] = {
+      1,    // opencl_global
+      3,    // opencl_local
+      4,    // opencl_constant
+      1,    // cuda_device
+      4,    // cuda_constant
+      3,    // cuda_shared
+    };
+    return &NVPTXAddrSpaceMap;
   } else {
     return &T.getAddressSpaceMap();
   }

@@ -502,7 +502,7 @@ void CodeGenModule::EmitCtorList(const CtorList &Fns, const char *GlobalName) {
 
 llvm::GlobalValue::LinkageTypes
 CodeGenModule::getFunctionLinkage(const FunctionDecl *D) {
-  if (LangOpts.AMP && CodeGenOpts.AMPIsKernel) {
+  if (LangOpts.AMP && TargetOpts.AMPIsKernel) {
     return D->hasAttr<AMPKernelAttr>()
         ? llvm::Function::ExternalLinkage
         : llvm::Function::InternalLinkage;
@@ -980,7 +980,7 @@ bool CodeGenModule::MayDeferGeneration(const ValueDecl *Global) {
   if (LangOpts.EmitAllDecls)
     return false;
 
-  if (LangOpts.AMP && CodeGenOpts.AMPIsKernel) {
+  if (LangOpts.AMP && TargetOpts.AMPIsKernel) {
     if (Global->hasAttr<AMPKernelAttr>()) return false;
   }
 
@@ -1089,7 +1089,7 @@ void CodeGenModule::EmitGlobal(GlobalDecl GD) {
   }
 
   if (LangOpts.AMP) {
-    if (CodeGenOpts.AMPIsKernel !=
+    if (TargetOpts.AMPIsKernel !=
         (Global->hasAttr<AMPRestrictAttr>() ||
         Global->hasAttr<AMPKernelAttr>())) return;
   }

@@ -433,7 +433,7 @@ static void InitializePredefinedMacros(const TargetInfo &TI,
   }
 
   if (LangOpts.AMP)
-    Builder.defineMacro("__CXXAMP_");
+    Builder.defineMacro("__CXXAMP__");
 
   if (LangOpts.MicrosoftExt) {
     // Both __PRETTY_FUNCTION__ and __FUNCTION__ are GCC extensions, however
